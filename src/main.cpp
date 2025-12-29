@@ -16,12 +16,11 @@ motor MotorBeamMotorA = motor(PORT5, false);
 motor MotorBeamMotorB = motor(PORT11, true);
 motor_group MotorBeam = motor_group(MotorBeamMotorA, MotorBeamMotorB);
 
-touchled TouchLED12 = touchled(PORT12);
+touchled TouchLED = touchled(PORT6);
 pneumatic Pneumatic_Pin_Beam = pneumatic(PORT4);
-motor MotorLeft = motor(PORT6, false);
+motor MotorLeft = motor(PORT12, false);
 motor MotorRight = motor(PORT10, true);
 pneumatic guide = pneumatic(PORT8);
-
 distance D1 = distance(PORT1);
 distance D2 = distance(PORT2);
 
@@ -60,7 +59,7 @@ bool RemoteControlCodeEnabled = true;
 // User defined function declarations
 void Place_beam();
 void Drop_down();
-void Drop_Down_Grab_Up();
+void Drop_down_Grab_Up();
 void Grab_Beam_up();
 void R3F();
 void Grab_then_up();
@@ -193,7 +192,7 @@ void Movemen_v_fb_d_Aj(double maxVelocity, int FB, double distance, double head)
   while (true)
   {
     double current =
-      fabs(MotorLeft.position(degrees) + MotorRight.position(degrees)) / 2.0;
+        fabs(MotorLeft.position(degrees) + MotorRight.position(degrees)) / 2.0;
     if (current >= target)
       break;
 
@@ -201,21 +200,25 @@ void Movemen_v_fb_d_Aj(double maxVelocity, int FB, double distance, double head)
 
     // --- heading error ---
     double headError = head - BrainInertial.heading();
-    if (headError > 180)  headError -= 360;
-    if (headError < -180) headError += 360;
+    if (headError > 180)
+      headError -= 360;
+    if (headError < -180)
+      headError += 360;
 
     double turn = Kp_head * headError;
 
     if (fabs(headError) > 2 && fabs(turn) < minTurn)
       turn = (headError > 0) ? minTurn : -minTurn;
 
-    if (turn > maxTurn)  turn = maxTurn;
-    if (turn < -maxTurn) turn = -maxTurn;
+    if (turn > maxTurn)
+      turn = maxTurn;
+    if (turn < -maxTurn)
+      turn = -maxTurn;
 
     if (FB != 0)
       turn = -turn;
 
-    double leftSpeed  = baseSpeed - turn;
+    double leftSpeed = baseSpeed - turn;
     double rightSpeed = baseSpeed + turn;
 
     if (FB == 0)
@@ -715,58 +718,89 @@ void TurnToAngle(double targetHeading, double maxVelocity, double momentum)
 
 void Grab_then_up()
 {
+  MotorPin.resetPosition();
+  MotorPin.setPosition(0.0, degrees);
   MotorPin.setStopping(hold);
-  MotorLeft.stop();
-  MotorRight.stop();
+  // MotorPin.spinFor(forward, 10.0, degrees, true);
   Pneumatic_Pin_Beam.extend(cylinder1);
-  MotorPin.spinFor(reverse, 160.0, degrees, true);
+  wait(0.3, seconds);
+  // MotorPin.spinFor(forward, 180.0, degrees, false);
+  MotorPin.spinToPosition(180.0, degrees, false);
+  wait(0.2, seconds);
   guide.extend(cylinder2);
-  MotorPin.stop();
-  MotorLeft.stop();
-  MotorRight.stop();
 }
 
 void Drop_down()
 {
-  MotorLeft.stop();
-  MotorRight.stop();
-  guide.retract(cylinder2);
+  MotorPin.resetPosition();
+  MotorLeft.setStopping(hold);
+  MotorRight.setStopping(hold);
   wait(0.35, seconds);
-  MotorPin.setStopping(coast);
-  MotorPin.spinFor(forward, 155.0, degrees, false);
-  wait(0.3, seconds);
-  MotorLeft.stop();
-  MotorRight.stop();
+  // MotorPin.setStopping(coast);
+  MotorPin.setVelocity(100, percent);
+  // MotorPin.spinFor(reverse, 220.0, degrees, false);
+  MotorPin.spinFor(reverse, 50.0, degrees, false);
+  wait(0.1, seconds);
+  guide.retract(cylinder2);
+  MotorPin.spinFor(reverse, 170.0, degrees, false);
+  wait(250, msec);
+  MotorPin.setVelocity(100, percent);
+  MotorPin.spin(reverse);
+  while (MotorPin.velocity(vex::velocityUnits::pct) > 1)
+  {
+    MotorPin.spin(reverse);
+    wait(100, msec);
+  }
+  // MotorPin.spinFor(forward, 155.0, degrees, false);
   Pneumatic_Pin_Beam.retract(cylinder1);
-  MotorPin.stop();
+  MotorPin.setStopping(coast);
+  MotorPin.stop(coast);
+  // wait(0.3, seconds);
+  MotorLeft.setStopping(coast);
+  MotorRight.setStopping(coast);
+  MotorPin.setPosition(0.0, degrees);
 }
 
-void Drop_Down_Grab_Up()
+void Drop_down_Grab_Up()
 {
+
+  wait(0.1, seconds);
+  MotorPin.resetPosition();
+  MotorPin.setPosition(0.0, degrees);
+  MotorPin.setStopping(hold);
+  // MotorPin.spinFor(reverse, 50.0, degrees, false);
+  MotorPin.spinToPosition(-50.0, degrees, false);
+  wait(0.1, seconds);
   guide.retract(cylinder2);
-  wait(0.23, seconds);
-  MotorPin.spinFor(forward, 80.0, degrees, true);
-  Pneumatic_Pin_Beam.retract(cylinder1);
-  MotorPin.spinFor(forward, 80.0, degrees, true);
-  MotorLeft.stop(brake);
-  MotorRight.stop(brake);
-  MotorLeft.setVelocity(25.0, percent);
-  MotorRight.setVelocity(25.0, percent);
-  MotorLeft.spinFor(forward, 300.0, degrees, false);
-  MotorRight.spinFor(forward, 300.0, degrees, false);
-  wait(0.3, seconds);
-  Pneumatic_Pin_Beam.extend(cylinder1);
-  MotorPin.spinFor(reverse, 160.0, degrees, false);
+  MotorPin.spinToPosition(-170.0, degrees, false);
+  // MotorPin.spinFor(reverse, 170.0, degrees, false);
   wait(0.25, seconds);
-  guide.extend(cylinder2);
+  Pneumatic_Pin_Beam.retract(cylinder1);
+  while (MotorPin.velocity(vex::velocityUnits::pct) > 1)
+  {
+    MotorPin.spin(reverse);
+    wait(1, msec);
+  }
+  MotorLeft.setVelocity(50.0, percent);
+  MotorRight.setVelocity(50.0, percent);
+  MotorLeft.spinFor(forward, 500.0, degrees, false);
+  MotorRight.spinFor(forward, 500.0, degrees, false);
+  wait(0.2, seconds);
+  Pneumatic_Pin_Beam.extend(cylinder1);
+  wait(0.3, seconds);
+  MotorPin.resetPosition();
+  // MotorPin.spinFor(forward, 220.0, degrees, false);
+  MotorPin.spinToPosition(215.0, degrees, false);
   MotorLeft.stop(brake);
   MotorRight.stop(brake);
+  wait(0.2, seconds);
+  guide.extend(cylinder2);
 }
 
 void R3F()
 {
   Pneumatic_Pin_Beam.extend(cylinder2);
-  MotorPin.spinFor(reverse, 700.0, degrees, false);
+  MotorPin.spinFor(forward, 700.0, degrees, false);
   wait(1500, msec);
   Pneumatic_Pin_Beam.retract(cylinder1);
   wait(0.1, seconds);
@@ -809,7 +843,7 @@ double ComputeApproachSpeed(double width, double maxSpeed)
 
 void Go_To_Pin(int Gopin)
 {
-  const double targetWidth = 100.0; // when object is this big, we stop
+  const double targetWidth = 115.0; // when object is this big, we stop
   const double maxSpeed = 100.0;    // max forward speed (tune if needed)
 
   while (true)
@@ -874,7 +908,7 @@ void AjpinRight(int targetIDLeft)
   // int count = 0;
   while (true)
   {
-    TouchLED12.setColor(orange);
+    TouchLED.setColor(orange);
 
     AIVision7.takeSnapshot(aivision::ALL_AIOBJS);
 
@@ -919,7 +953,7 @@ void AjpinRight(int targetIDLeft)
     }
 
     wait(10, msec);
-    TouchLED12.setColor(blue_green);
+    TouchLED.setColor(blue_green);
   }
 }
 
@@ -943,7 +977,7 @@ int take_off()
   Pneumatic_Pin_Beam.retract(cylinder2);
   guide.extend(cylinder1);
   Pneumatic_Pin_Beam.pumpOn();
-  TouchLED12.setColor(red);
+  TouchLED.setColor(red);
   Brain.Screen.setCursor(1, 1);
   guide.retract(cylinder2);
   Drop_down_beam();
@@ -961,10 +995,10 @@ void controArm()
   {
     if (armfont)
     {
-      R3F();
       guide.retract(cylinder2);
+      R3F();
       MotorPin.setStopping(coast);
-      MotorPin.spinFor(forward, 700.0, degrees, false);
+      MotorPin.spinFor(reverse, 700.0, degrees, false);
       MotorBeam.spinFor(reverse, 200, degrees, false);
       wait(1000, msec);
       MotorPin.stop(coast);
@@ -979,7 +1013,7 @@ void controArm()
     {
       MotorPin.setStopping(hold);
       Pneumatic_Pin_Beam.extend(cylinder1);
-      MotorPin.spinFor(reverse, 160.0, degrees, true);
+      MotorPin.spinFor(forward, 180.0, degrees, true);
       guide.extend(cylinder2);
       MotorPin.stop();
       Arm_Grab_pin = false;
@@ -1032,7 +1066,7 @@ double ComputeAlignSpeed(double absErr, double maxSpeed)
 //   // int count = 0;
 //   while (true)
 //   {
-//     TouchLED12.setColor(orange);
+//     TouchLED.setColor(orange);
 
 //     AIVision7.takeSnapshot(aivision::ALL_AIOBJS);
 
@@ -1077,7 +1111,7 @@ double ComputeAlignSpeed(double absErr, double maxSpeed)
 //     }
 
 //     wait(10, msec);
-//     TouchLED12.setColor(blue_green);
+//     TouchLED.setColor(blue_green);
 //   }
 // }
 
@@ -1086,7 +1120,7 @@ double ComputeAlignSpeed(double absErr, double maxSpeed)
 //   int count = 0;
 //   while (true)
 //   {
-//     TouchLED12.setColor(blue);
+//     TouchLED.setColor(blue);
 
 //     AIVision7.takeSnapshot(aivision::ALL_AIOBJS);
 
@@ -1135,7 +1169,7 @@ double ComputeAlignSpeed(double absErr, double maxSpeed)
 //     }
 
 //     wait(10, msec);
-//     TouchLED12.setColor(blue_green);
+//     TouchLED.setColor(blue_green);
 //   }
 // }
 // void AjpinFind(int targetID)
@@ -1143,7 +1177,7 @@ double ComputeAlignSpeed(double absErr, double maxSpeed)
 //   int count = 0;
 //   while (true)
 //   {
-//     TouchLED12.setColor(red);
+//     TouchLED.setColor(red);
 
 //     AIVision7.takeSnapshot(aivision::ALL_AIOBJS);
 
@@ -1193,7 +1227,7 @@ double ComputeAlignSpeed(double absErr, double maxSpeed)
 //     }
 
 //     wait(10, msec);
-//     TouchLED12.setColor(blue_green);
+//     TouchLED.setColor(blue_green);
 //   }
 // }
 
@@ -1202,7 +1236,7 @@ double ComputeAlignSpeed(double absErr, double maxSpeed)
 //   int count = 0;
 //   while (true)
 //   {
-//     TouchLED12.setColor(purple);
+//     TouchLED.setColor(purple);
 
 //     AIVision7.takeSnapshot(aivision::ALL_AIOBJS);
 
@@ -1252,13 +1286,13 @@ double ComputeAlignSpeed(double absErr, double maxSpeed)
 //     }
 
 //     wait(10, msec);
-//     TouchLED12.setColor(blue_green);
+//     TouchLED.setColor(blue_green);
 //   }
 // }
 
 // =================== TOUCH LED EVENT ===================
 
-void onevent_TouchLED12_pressed_0()
+void onevent_TouchLED_pressed_0()
 {
   MotorLeft.stop(coast);
   MotorRight.stop(coast);
@@ -1271,291 +1305,279 @@ void onevent_TouchLED12_pressed_0()
   startgame = false;
   Brain.Timer.reset();
 
-  TouchLED12.setColor(purple);
+  TouchLED.setColor(purple);
 
   if (touched)
   {
     BrainInertial.setHeading(0.0, degrees);
     BrainInertial.setRotation(0.0, degrees);
-    TouchLED12.setColor(orange);
+    TouchLED.setColor(orange);
     wait(1, seconds);
     touched = false;
   }
   else
   {
     //========================= Initial ===============================
-    TouchLED12.setColor(purple);
+    TouchLED.setColor(purple);
     MotorBeam.setVelocity(100.0, percent);
     MotorBeam.setMaxTorque(100.0, percent);
     startgame = false;
     Brain.Timer.reset();
     BrainInertial.setRotation(0.0, degrees);
     MotorBeam.spinFor(reverse, 220, degrees, false);
-    double startHeading = BrainInertial.heading();
-    // int count = 0;
+    // double startHeading = BrainInertial.heading();
+    int count = 0;
 
     // ====================== Fist 2 Pins ==============================
-    //   Movemen_v_fb_d(100, 0, 850.0);
-    //   Movemen_v_fb_d(20, 0, 150.0);
-    Movemen_v_fb_d_Aj(100, 0, 850.0, startHeading);
+    Movemen_v_fb_d(100, 0, 850.0);
+    Movemen_v_fb_d(20, 0, 150.0);
+    // Movemen_v_fb_d_Aj(100, 0, 850.0, startHeading);
     Pneumatic_Pin_Beam.extend(cylinder1);
 
-    //   //====================== Init Second 2 Pins ========================
-    //   Movemen_v_fb_d(100, 1, 390.0);
-    //   // wait(200, msec);
-    //   // while ((D2.objectDistance(mm) > 800) || (D2.objectDistance(mm) < 700))
-    //   // {
-    //   //   if ((D2.objectDistance(mm) > 800))
-    //   //   {
-    //   //     TouchLED12.setColor(green);
-    //   //     MotorLeft.setVelocity(20, pct);
-    //   //     MotorRight.setVelocity(20, pct);
-    //   //     MotorLeft.spin(reverse);
-    //   //     MotorRight.spin(reverse);
-    //   //   }
-    //   //   else if ((D2.objectDistance(mm) < 700))
-    //   //   {
-    //   //     TouchLED12.setColor(green);
-    //   //     MotorLeft.setVelocity(20, pct);
-    //   //     MotorRight.setVelocity(20, pct);
-    //   //     MotorLeft.spin(forward);
-    //   //     MotorRight.spin(forward);
-    //   //   }
-    //   //   wait(10, msec);
-    //   // }
-    //   // TouchLED12.setColor(purple);
-    //   Arm_Grab_pin = true;
-    //   TurnRight_h_v_m(335, 70, 3);
-    //   wait(200, msec);
-    //   while ((D2.objectDistance(mm) < 430) || (D2.objectDistance(mm) > 440))
+    //====================== Init Second 2 Pins ========================
+    Movemen_v_fb_d(100, 1, 390.0);
+    // wait(200, msec);
+    // while ((D2.objectDistance(mm) > 800) || (D2.objectDistance(mm) < 700))
+    // {
+    //   if ((D2.objectDistance(mm) > 800))
     //   {
-    //     if ((D2.objectDistance(mm) < 430))
-    //     {
-    //       TouchLED12.setColor(green);
-    //       MotorLeft.setVelocity(20, pct);
-    //       MotorRight.setVelocity(20, pct);
-    //       MotorLeft.spin(forward);
-    //       MotorRight.spin(forward);
-    //     }
-    //     else if ((D2.objectDistance(mm) > 440))
-    //     {
-    //       TouchLED12.setColor(green);
-    //       MotorLeft.setVelocity(20, pct);
-    //       MotorRight.setVelocity(20, pct);
-    //       MotorLeft.spin(reverse);
-    //       MotorRight.spin(reverse);
-    //     }
-    //     wait(10, msec);
+    //     TouchLED.setColor(green);
+    //     MotorLeft.setVelocity(20, pct);
+    //     MotorRight.setVelocity(20, pct);
+    //     MotorLeft.spin(reverse);
+    //     MotorRight.spin(reverse);
     //   }
-    //   TouchLED12.setColor(purple);
-    //   Movemen_v_fb_d(100, 0, 350.0);
-    //   TurnLeft_h_v_m(310, 50.0, 3);
-    //   Movemen_v_fb_d(100, 0, 300.0);
-    //   Movemen_v_fb_d(20, 0, 125.0);
-    //   Drop_Down_Grab_Up();
-    //   TurnLeft_h_v_m(270, 50.0, 3);
-
-    //   // =============== Place Pin on Standoff =======================
-    //   MotorLeft.setVelocity(100, percent);
-    //   MotorRight.setVelocity(100, percent);
-    //   MotorLeft.spin(reverse);
-    //   MotorRight.spin(reverse);
-    //   count = 0;
-    //   while (true)
+    //   else if ((D2.objectDistance(mm) < 700))
     //   {
-    //     if (D1.objectDistance(inches) > 2.1 && D2.objectDistance(inches) > 2.1)
-    //     {
-    //       MotorLeft.spin(reverse);
-    //       MotorRight.spin(reverse);
-    //     }
-    //     else
-    //     {
-    //       TouchLED12.setColor(green);
-    //       count += 1;
-    //       if (count > 5)
-    //       {
-    //         break;
-    //       }
-    //     }
-    //     wait(20, msec);
+    //     TouchLED.setColor(green);
+    //     MotorLeft.setVelocity(20, pct);
+    //     MotorRight.setVelocity(20, pct);
+    //     MotorLeft.spin(forward);
+    //     MotorRight.spin(forward);
     //   }
-    //   TouchLED12.setColor(purple);
-    //   Place_Standoff();
-    //   Movemen_v_fb_d(100, 0, 150);
+    //   wait(10, msec);
+    // }
+    // TouchLED.setColor(purple);
+    Arm_Grab_pin = true;
+    TurnRight_h_v_m(335, 70, 3);
+    Go_To_Pin(bluePin);
+    TurnLeft_h_v_m(310, 50.0, 3);
+    MotorLeft.setVelocity(50, percent);
+    MotorRight.setVelocity(100, percent);
+    MotorLeft.spin(forward);
+    MotorRight.spin(forward);
+    wait(0.4, seconds);
+    MotorLeft.stop(brake);
+    MotorRight.stop(brake);
+    MotorLeft.setVelocity(40, percent);
+    MotorRight.setVelocity(40, percent);
+    MotorLeft.spin(forward);
+    MotorRight.spin(forward);
+    wait(0.7, seconds);
+    Drop_down_Grab_Up();
+    TurnLeft_h_v_m(270, 50.0, 3);
 
-    //   // ========================= U Beam =====================================
-    //   armback = true;
-    //   TurnLeft_h_v_m(90, 70, 3);
-    //   MotorLeft.setVelocity(100, percent);
-    //   MotorRight.setVelocity(100, percent);
-    //   MotorLeft.spin(reverse);
-    //   MotorRight.spin(reverse);
-    //   wait(0.5, seconds);
-    //   while (MotorLeft.velocity(percent) != 0)
+    // =============== Place Pin on Standoff =======================
+    MotorLeft.setVelocity(100, percent);
+    MotorRight.setVelocity(100, percent);
+    MotorLeft.spin(reverse);
+    MotorRight.spin(reverse);
+    wait(0.5, seconds);
+    while (MotorLeft.velocity(percent) != 0)
+    {
+      MotorLeft.spin(reverse);
+      MotorRight.spin(reverse);
+      wait(100, msec);
+    }
+    // count = 0;
+    // while (true)
+    // {
+    //   if (D1.objectDistance(inches) > 2.1 && D2.objectDistance(inches) > 2.1)
     //   {
     //     MotorLeft.spin(reverse);
     //     MotorRight.spin(reverse);
     //   }
-    //   armfont = true;
-    //   MotorLeft.setVelocity(100, percent);
-    //   MotorRight.setVelocity(100, percent);
-    //   MotorLeft.spin(reverse);
-    //   MotorRight.spin(reverse);
-    //   while (MotorLeft.velocity(percent) != 0)
+    //   else
     //   {
-    //     MotorLeft.spin(reverse);
-    //     MotorRight.spin(reverse);
-    //   }
-    //   //===================== Y steak  On Standoff ===============
-    //   Movemen_v_fb_d(100, 0, 150);
-    //   // MotorBeam.spinFor(reverse, 200, degrees, false);
-    //   turnRightLong(270, 100);
-    //   // TurnRight_h_v_m(273, 100, 3);
-    //   MotorLeft.setVelocity(100, percent);
-    //   MotorRight.setVelocity(100, percent);
-    //   MotorLeft.spin(forward);
-    //   MotorRight.spin(forward);
-    //   wait(0.3, seconds);
-    //   while (MotorLeft.velocity(percent) != 0)
-    //   {
-    //     MotorLeft.spin(forward);
-    //     MotorRight.spin(forward);
-    //   }
-    //   wait(0.5, seconds);
-    //   MotorLeft.setVelocity(100, percent);
-    //   MotorRight.setVelocity(100, percent);
-    //   MotorLeft.spin(reverse);
-    //   MotorRight.spin(reverse);
-    //   MotorBeam.setVelocity(100, percent);
-    //   MotorBeam.spinFor(reverse, 290, degrees, false);
-    //   wait(0.5, sec);
-    //   count = 0;
-    //   while (true)
-    //   {
-    //     if (D1.objectDistance(inches) > 2.1 && D2.objectDistance(inches) > 2.1)
+    //     TouchLED.setColor(green);
+    //     count += 1;
+    //     if (count > 5)
     //     {
-    //       MotorLeft.spin(reverse);
-    //       MotorRight.spin(reverse);
+    //       break;
     //     }
-    //     else
-    //     {
-    //       TouchLED12.setColor(green);
-    //       count += 1;
-    //       if (count > 5)
-    //       {
-    //         break;
-    //       }
-    //     }
-    //     wait(20, msec);
     //   }
-    //   wait(0.5, sec);
-    //   TouchLED12.setColor(purple);
-    //   beamoff = true;
-    //   Place_Standoff();
+    //   wait(20, msec);
+    // }
+    // TouchLED.setColor(purple);
+    Place_Standoff();
+    Movemen_v_fb_d(100, 0, 150);
 
-    //   //----------------------------------------------------------
-    //   //=================== part 2 ===============================
-    //   //----------------------------------------------------------
+    // // ========================= U Beam =====================================
+    armback = true;
+    TurnLeft_h_v_m(90, 70, 3);
+    MotorLeft.setVelocity(100, percent);
+    MotorRight.setVelocity(100, percent);
+    MotorLeft.spin(reverse);
+    MotorRight.spin(reverse);
+    wait(0.5, seconds);
+    while (MotorLeft.velocity(percent) != 0)
+    {
+      MotorLeft.spin(reverse);
+      MotorRight.spin(reverse);
+      wait(100, msec);
+    }
+    armfont = true;
+    MotorLeft.setVelocity(100, percent);
+    MotorRight.setVelocity(100, percent);
+    MotorLeft.spin(reverse);
+    MotorRight.spin(reverse);
+    while (MotorLeft.velocity(percent) != 0)
+    {
+      MotorLeft.spin(reverse);
+      MotorRight.spin(reverse);
+      wait(100, msec);
+    }
+    //===================== Y steak  On Standoff ===============
+    Movemen_v_fb_d(100, 0, 150);
+    // MotorBeam.spinFor(reverse, 200, degrees, false);
+    turnRightLong(270, 100);
+    // TurnRight_h_v_m(273, 100, 3);
+    MotorLeft.setVelocity(100, percent);
+    MotorRight.setVelocity(100, percent);
+    MotorLeft.spin(forward);
+    MotorRight.spin(forward);
+    wait(0.3, seconds);
+    while (MotorLeft.velocity(percent) != 0)
+    {
+      MotorLeft.spin(forward);
+      MotorRight.spin(forward);
+    }
+    wait(0.5, seconds);
+    MotorLeft.setVelocity(100, percent);
+    MotorRight.setVelocity(100, percent);
+    MotorLeft.spin(reverse);
+    MotorRight.spin(reverse);
+    MotorBeam.setVelocity(100, percent);
+    MotorBeam.spinFor(reverse, 290, degrees, false);
+    wait(0.5, sec);
+    count = 0;
+    MotorLeft.spin(reverse);
+    MotorRight.spin(reverse);
+    wait(0.5, seconds);
+    while (MotorLeft.velocity(percent) != 0)
+    {
+      MotorLeft.spin(reverse);
+      MotorRight.spin(reverse);
+      wait(100, msec);
+    }
+    wait(0.5, sec);
+    TouchLED.setColor(purple);
+    beamoff = true;
+    Place_Standoff();
 
-    //   //================= grab 2 orangePin =======================
-    //   MotorLeft.setVelocity(100, percent);
-    //   MotorRight.setVelocity(100, percent);
+    // //----------------------------------------------------------
+    // //=================== part 2 ===============================
+    // //----------------------------------------------------------
+
+    // //================= grab 2 orangePin =======================
+    // MotorLeft.setVelocity(100, percent);
+    // MotorRight.setVelocity(100, percent);
+    // MotorLeft.spin(forward);
+    // MotorRight.spin(forward);
+    // wait(0.3, sec);
+    // while (MotorLeft.velocity(percent) > 1)
+    // {
     //   MotorLeft.spin(forward);
     //   MotorRight.spin(forward);
-    //   wait(0.3, sec);
-    //   while (MotorLeft.velocity(percent) > 1)
-    //   {
-    //     MotorLeft.spin(forward);
-    //     MotorRight.spin(forward);
-    //   }
-    //   MotorLeft.stop(brake);
-    //   MotorRight.stop(brake);
-    //   Movemen_v_fb_d(100, 1, 100);
-    //   Pneumatic_Pin_Beam.extend(cylinder1);
-    //   TurnToAngle(15, 100, 3);
-    //   Movemen_v_fb_d(100, 0, 650);
-    //   Grab_then_up();
-    //   TurnToAngle(10, 100, 3);
-    //   Pneumatic_Pin_Beam.retract(cylinder1);
-    //   MotorLeft.setVelocity(100, percent);
-    //   MotorRight.setVelocity(100, percent);
+    // }
+    // MotorLeft.stop(brake);
+    // MotorRight.stop(brake);
+    // Movemen_v_fb_d(100, 1, 100);
+    // Pneumatic_Pin_Beam.extend(cylinder1);
+    // TurnToAngle(15, 100, 3);
+    // Movemen_v_fb_d(100, 0, 650);
+    // Grab_then_up();
+    // TurnToAngle(10, 100, 3);
+    // Pneumatic_Pin_Beam.retract(cylinder1);
+    // MotorLeft.setVelocity(100, percent);
+    // MotorRight.setVelocity(100, percent);
+    // MotorLeft.spin(forward);
+    // MotorRight.spin(forward);
+    // wait(0.5, seconds);
+    // while (MotorLeft.velocity(percent) > 1)
+    // {
     //   MotorLeft.spin(forward);
     //   MotorRight.spin(forward);
-    //   wait(0.5, seconds);
-    //   while (MotorLeft.velocity(percent) > 1)
-    //   {
-    //     MotorLeft.spin(forward);
-    //     MotorRight.spin(forward);
-    //   }
-    //   MotorLeft.stop();
-    //   wait(0.25, msec);
-    //   MotorRight.stop();
-    //   Movemen_v_fb_d(100, 1, 100);
+    // }
+    // MotorLeft.stop();
+    // wait(0.25, msec);
+    // MotorRight.stop();
+    // Movemen_v_fb_d(100, 1, 100);
+    // Drop_down();
+    // MotorLeft.setVelocity(100, percent);
+    // MotorRight.setVelocity(100, percent);
+    // MotorLeft.spin(forward);
+    // MotorRight.spin(forward);
+    // wait(0.5, seconds);
+    // while (MotorLeft.velocity(percent) > 1)
+    // {
+    //   MotorLeft.spin(forward);
+    //   MotorRight.spin(forward);
+    // }
+    // MotorLeft.stop();
+    // MotorRight.stop();
+    // Pneumatic_Pin_Beam.extend(cylinder1);
+    // Movemen_v_fb_d(100, 1, 100);
+    // // turnRightLong(115, 100);
+    // Grab_then_up();
+    // turnRightLong(113, 100);
+    // TurnRight_h_v_m(113, 40, 3);
+    // if (fabs(BrainInertial.heading() - 113) > 5)
+    // {
+    //   AjpinRight(bluePin);
+    // }
+    // //=================== 2 steak =======================
+    // Go_To_Pin(redPin);
+    // Movemen_v_fb_d(20, 0, 200);
+    // Drop_down_Grab_Up();
+    // Movemen_v_fb_d(100, 1, 80);
+    // if (Brain.timer(sec) >= 50)
+    // {
     //   Drop_down();
-    //   MotorLeft.setVelocity(100, percent);
-    //   MotorRight.setVelocity(100, percent);
-    //   MotorLeft.spin(forward);
-    //   MotorRight.spin(forward);
-    //   wait(0.5, seconds);
-    //   while (MotorLeft.velocity(percent) > 1)
-    //   {
-    //     MotorLeft.spin(forward);
-    //     MotorRight.spin(forward);
-    //   }
-    //   MotorLeft.stop();
-    //   MotorRight.stop();
-    //   Pneumatic_Pin_Beam.extend(cylinder1);
     //   Movemen_v_fb_d(100, 1, 100);
-    //   // turnRightLong(115, 100);
-    //   Grab_then_up();
-    //   turnRightLong(113, 100);
-    //   TurnRight_h_v_m(113, 40, 3);
-    //   if (fabs(BrainInertial.heading() - 113) > 5)
-    //   {
-    //     AjpinRight(bluePin);
-    //   }
-    //   //=================== 2 steak =======================
-    //   Go_To_Pin(redPin);
-    //   Movemen_v_fb_d(20, 0, 200);
-    //   Drop_Down_Grab_Up();
-    //   Movemen_v_fb_d(100, 1, 80);
-    //   if (Brain.timer(sec) >= 50)
-    //   {
-    //     Drop_down();
-    //     Movemen_v_fb_d(100, 1, 100);
-    //     Brain.programStop();
-    //   }
-    //   //=================== U Beam ========================
-    //   TurnRight_h_v_m(180, 128, 3);
-    //   MotorLeft.setVelocity(100, percent);
-    //   MotorRight.setVelocity(100, percent);
+    //   Brain.programStop();
+    // }
+    // //=================== U Beam ========================
+    // TurnRight_h_v_m(180, 128, 3);
+    // MotorLeft.setVelocity(100, percent);
+    // MotorRight.setVelocity(100, percent);
+    // MotorLeft.spin(reverse);
+    // MotorRight.spin(reverse);
+    // wait(0.8, seconds);
+    // while (MotorLeft.velocity(percent) != 0)
+    // {
     //   MotorLeft.spin(reverse);
     //   MotorRight.spin(reverse);
-    //   wait(0.8, seconds);
-    //   while (MotorLeft.velocity(percent) != 0)
-    //   {
-    //     MotorLeft.spin(reverse);
-    //     MotorRight.spin(reverse);
-    //   }
-    //   wait(0.2, seconds);
-    //   Pneumatic_Pin_Beam.extend(cylinder2);
-    //   MotorLeft.stop();
-    //   MotorRight.stop();
-    //   armfont = true;
-    //   Movemen_v_fb_d(100, 0, 250);
-    //   turnRightLong(270, 100);
-    //   guide.retract(cylinder1);
-    //   // MotorBeam.spinFor(reverse, 80, degrees, false);
+    // }
+    // wait(0.2, seconds);
+    // Pneumatic_Pin_Beam.extend(cylinder2);
+    // MotorLeft.stop();
+    // MotorRight.stop();
+    // armfont = true;
+    // Movemen_v_fb_d(100, 0, 250);
+    // turnRightLong(270, 100);
+    // guide.retract(cylinder1);
+    // // MotorBeam.spinFor(reverse, 80, degrees, false);
 
-    //   //====================== Y steak ========================
-    //   MotorLeft.setVelocity(30, percent);
-    //   MotorRight.setVelocity(30, percent);
-    //   MotorLeft.spinFor(reverse, 361, degrees, false);
-    //   MotorRight.spinFor(reverse, 361, degrees, false);
-    //   Grab_Beam_up();
-    //   wait(1, seconds);
-    //   Place_beam();
-    //   Brain.programStop();
+    // //====================== Y steak ========================
+    // MotorLeft.setVelocity(30, percent);
+    // MotorRight.setVelocity(30, percent);
+    // MotorLeft.spinFor(reverse, 361, degrees, false);
+    // MotorRight.spinFor(reverse, 361, degrees, false);
+    // Grab_Beam_up();
+    // wait(1, seconds);
+    // Place_beam();
+    // Brain.programStop();
   }
 }
 
@@ -1564,6 +1586,6 @@ int main()
   vexcodeInit();
   thread printco(PrintCon);
   thread controarm(controArm);
-  TouchLED12.pressed(onevent_TouchLED12_pressed_0);
+  TouchLED.pressed(onevent_TouchLED_pressed_0);
   take_off();
 }
