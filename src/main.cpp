@@ -328,7 +328,7 @@ void dis_heading_Align(double velocity)
   }
   d_now_go = d - 1253;
   // สูตรพีทาโกรัส
-  Hypotenuse = hypotenuse(d_now_go, 320);
+  Hypotenuse = hypotenuse(d_now_go, 450);
 
   if (current > 3 && current <= 45)
   {
@@ -343,12 +343,12 @@ void dis_heading_Align(double velocity)
     Movemen_v_fb_d(100, 0, Hypotenuse);
     TurnRight_h_v_m_v1(90, 80, 4);
     if (d_now_go < 100 && d_now_go > 30)
-      d_now_go += 70;
+      d_now_go += 100;
     Movemen_v_fb_d(velocity, 0, d_now_go);
   }
   else
   {
-    Movemen_v_fb_d(100, 0, 320);
+    Movemen_v_fb_d(velocity, 0, 450);
     TurnRight_h_v_m_v1(90, 80, 4);
   }
 }
@@ -362,7 +362,7 @@ void Go_with_hypotenuse(double a, double b)
 
   double dis = (491 - a);
   double dis_go = hypotenuse(dis, b);
-  Movemen_v_fb_d(100, 0, dis_go);
+  Movemen_v_fb_d(100, 0, dis_go - 200);
 }
 
 // double ComputeTurnSpeed(double absErr, double maxSpeed)
@@ -1303,11 +1303,12 @@ int Status_light()
   {
     if (AjON)
       TouchLED.setColor(green);
-    if (startgame)
-      TouchLED.setColor(blue_green);
-
-    wait(100, msec);
-    TouchLED.setColor(purple);
+    wait(250, msec);
+    if (touched)
+      TouchLED.setColor(orange);
+    else
+      TouchLED.setColor(purple);
+    wait(25, msec);
   }
   return 0;
 }
@@ -1687,8 +1688,11 @@ void Autonomous()
     // MotorRight.setStopping(brake);
     // TurnRight_h_v_m_v1(90, 80, 4);
     dis_heading_Align(100);
+    TurnRight_h_v_m_v1(110, 40, 2);
     // Pneumatic_Pin_Beam.extend(cylinder1);
-    // MotorBeam.spinFor(forward, 500, degrees, false);
+    Arm_Grab_pin = true;
+    wait(0.1, seconds);
+    armback = true;
     // MotorBeam.setStopping(coast);
     // MotorLeft.setVelocity(100, percent);
     // MotorRight.setVelocity(100, percent);
@@ -1774,10 +1778,46 @@ void Autonomous()
     // Place_beam();
 
     // part 2 New
-    TurnRight_h_v_m_v1(145, 80, 4);
-    Go_with_hypotenuse(0, 762);
+    // TurnRight_h_v_m_v1(140, 80, 3);
+    // Go_with_hypotenuse(0, 762);
+    // Movemen_v_fb_d(30, 0, 200.0);
+    // Pneumatic_Pin_Beam.extend(cylinder1);
+    // Movemen_v_fb_d(100, 1, 500);
+    StopMove_v_fb(100, 0);
+    MotorRight.stop(coast);
+    MotorLeft.stop(coast);
+    MotorRight.spin(forward, 100, pct);
+    wait(0.25, seconds);
+    while (MotorRight.velocity(vex::velocityUnits::pct) != 0)
+    {
+      MotorRight.spin(forward);
+      MotorLeft.spin(forward);
+    }
+    MotorRight.stop(coast);
+    MotorLeft.stop(coast);
+    Movemen_v_fb_d(100, 1, 100);
+    Drop_down();
+    wait(0.25, seconds);
+    // MotorLeft.setVelocity(100, percent);
+    // MotorRight.setVelocity(100, percent);
+    // Pneumatic_Pin_Beam.extend(cylinder1);
+    // MotorLeft.spin(forward);
+    // MotorRight.spin(forward);
+    // wait(0.2, seconds);
+    // while (MotorLeft.velocity(vex::velocityUnits::pct) != 0)
+    // {
+    //   MotorRight.spin(forward);
+    //   MotorLeft.spin(forward);
+    // }
+    StopMove_v_fb(100, 0);
     Pneumatic_Pin_Beam.extend(cylinder1);
-    Movemen_v_fb_d(100, 1, 500); 
+    Movemen_v_fb_d(100, 1, 100);
+    Arm_Grab_pin = true;
+    TurnRight_h_v_m_v1(210, 80, 4);
+    Movemen_v_fb_d(100, 0, 350);
+    Movemen_v_fb_d(40, 0, 180);
+    Drop_down_Grab_Up_mod();
+    wait(0.2, seconds);
   }
 }
 
